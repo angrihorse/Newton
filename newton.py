@@ -2,43 +2,40 @@ import numpy as np
 
 
 class Environment:
-    def __init__(self, window_size, gravity, friction, dt):
-        self.window_size = window_size # [Height, Width].
-        self.gravity = gravity # Towards [x, y].
-        self.friction = friction # On all surface.
-        self.dt = dt # Change in time before update.
-        self.objects = [] # List of objects.
-
-    def add_object(self, i):
-        self.objects.append(i)
+    def __init__(self, window_size, gravity, dampening, dt):
+        self.window_size = window_size
+        self.gravity = gravity
+        self.dampening = dampening
+        self.dt = dt
+        self.objects = []
 
     def update(self):
         for i in self.objects:
-            i.move()
-            self.bounce(i)
+            self.bounce_of_walls(i)
             for j in self.objects:
-                if i != j:
-                    self.collide(i, j)
+                if i != j: self.collide(i, j)
+            i.accelerate(*self.gravity)
+            i.move()
 
-    def bounce(self, i):
-        # The second lines in if statements exlude cases where balls stuck in walls.
+    def bounce_of_walls(self, i):
         if i.y - i.radius <= 0:
             i.dy *= -1
             i.y = i.radius
         if i.y + i.radius >= self.window_size[1]:
             i.dy *= -1
-            i.y = self.window_size[1]-i.radius
+            i.y = self.window_size[1] - i.radius
         if i.x - i.radius <= 0:
             i.dx *= -1
             i.x = i.radius
         if i.x + i.radius >= self.window_size[0]:
             i.dx *= -1
-            i.x = self.window_size[0]-i.radius
+            i.x = self.window_size[0] - i.radius
 
     def collide(self, i, j):
         X, Y = i.x - j.x, i.y - j.y
         distance = np.sqrt((X**2)+(Y**2))
-        if i.radius + j.radius >= distance:
+        penetration_depth = i.radius + j.radius - distance
+        if penetration_depth >= 0:
             # Reference: http://www.vobarian.com/collisions/2dcollisions2.pdf.
             n = np.asarray([X, Y])/distance # Normal unit vector.
             t = np.asarray([-n[1], n[0]]) # Tangential unit vector.
@@ -76,39 +73,32 @@ class Environment:
             u2 = u2n + u2t
 
             # Set the final velocity vectors.
-            i.dx, i.dy = u1
-            j.dx, j.dy = u2
+            i.dx, i.dy = self.dampening * u1
+            j.dx, j.dy = self.dampening * u2
 
-            # A trick to ensure that balls won't stick to each other.
-            i.x += n[0]
-            i.y += n[1]
-            j.x -= n[0]
-            j.y -= n[1]
+            # Percent of correction and threshold above which positional cprrection is not preformed.
+            percent, threshold = 0.2, 1
+            correction = percent * max(0, penetration_depth - threshold)
 
-    def attract(self, i, j):
-        X, Y = i.x - j.x, i.y - j.y
-        r = X**2+Y**2
-        m1, m2 = i.mass, j.mass
-        F = 6.67*10e-11*m1*m2/r**2
+            # Move objects away from each other to avoid sinking.
+            i.x += correction * n[0]
+            i.y += correction * n[1]
+            j.x -= correction * n[0]
+            j.y -= correction * n[1]
 
 
 class Ball:
-    def __init__(self, env, coordinates, speed, acceleration, radius, mass, color):
+    def __init__(self, env, coordinates, velocity, radius, mass):
         self.env = env
         self.x, self.y = coordinates
-        self.dx, self.dy = speed
-        self.dax, self.day = acceleration
+        self.dx, self.dy = velocity
         self.radius = radius
         self.mass = mass
-        self.color = color
+
+    def accelerate(self, dax, day):
+        self.dx += dax * self.env.dt
+        self.dy += day * self.env.dt
 
     def move(self):
-        self.x += self.dx*self.env.dt
-        self.y += self.dy*self.env.dt
-
-    def accelerate(self):
-        self.dx += self.dax*self.env.dt
-        self.dy += self.day*self.env.dt
-
-    def push(self, force):
-        pass
+        self.x += self.dx
+        self.y += self.dy

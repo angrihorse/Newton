@@ -6,40 +6,40 @@ import newton
 
 
 # Set simulation parameters.
-window_size = [800, 600]
-bg_color = (255,255,255)
-gravity = [0, 0]
-friction = 0
-dt = 0.01
-number_of_balls = 20
+window_size = [1080, 720]
+gravity = [0, 10]
+dampening = 0.95
+bg_color = (33, 33, 33)
+ball_color = (76, 175, 80)
+fps = 60
+dt = 1/fps
+number_of_balls = 32
 
 # Initialize the environment.
-env = newton.Environment(window_size, gravity, friction, dt)
+env = newton.Environment(window_size, gravity, dampening, dt)
 pygame.init()
-pygame.display.set_caption('Matrix')
+pygame.display.set_caption('Collision simulation')
 screen = pygame.display.set_mode((window_size[0], window_size[1]))
 
 def generate_balls(number_of_balls):
     for ball in range(number_of_balls):
-        speed = [np.random.randint(-600, 600), np.random.randint(-600, 600)]
-        acceleration = [0, 0]
         radius = np.random.randint(20, 40)
-        coordinates = [np.random.randint(radius, window_size[0]-radius), np.random.randint(radius, window_size[1]-radius)]
+        coordinates = np.random.randint(radius, np.array(window_size) - radius, 2)
+        velocity = np.random.randint(-6, 6, 2)
         mass = np.random.randint(40, 60)
-        color = (0, 0, 0)
-        env.add_object(newton.Ball(env, coordinates, speed, acceleration, radius, mass, color))
+        env.objects.append((newton.Ball(env, coordinates, velocity, radius, mass)))
 
 def draw_env(env):
     screen.fill(bg_color)
     for i in env.objects:
-        pygame.draw.circle(screen, i.color, (int(i.x), int(i.y)), i.radius, 1)
+        pygame.draw.circle(screen, ball_color, (int(i.x), int(i.y)), i.radius)
     pygame.display.flip()
 
 # Run the simulation.
 clock = pygame.time.Clock()
 generate_balls(number_of_balls)
 while True:
-    clock.tick(60)
+    clock.tick(fps)
     env.update()
     draw_env(env)
 
