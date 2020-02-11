@@ -1,3 +1,3 @@
 # Newton
-2D physics engine
+Ellastic collision simulation in 2D
 ![Alt Text](https://github.com/angrihorse/Newton/blob/master/balls.gif)
