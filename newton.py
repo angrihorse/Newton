@@ -100,5 +100,5 @@ class Ball:
         self.dy += day * self.env.dt
 
     def move(self):
-        self.x += self.dx
-        self.y += self.dy
+        self.x += self.dx * self.env.dt
+        self.y += self.dy * self.env.dt
